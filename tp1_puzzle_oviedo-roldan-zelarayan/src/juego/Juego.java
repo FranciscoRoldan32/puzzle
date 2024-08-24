@@ -18,9 +18,9 @@ public class Juego {
     private int movimientos = 0;
     private int emptyCell;
     private static final int DIM = 4;
-    private static final int SIZE = getDim() * getDim();
-    final String[] WIN = new String[SIZE - 1];
-    private JButton[][] board = new JButton[getDim()][getDim()];
+    private static final int SIZE = getDim() * getDim(); //4 columnas * 4 filas
+    final String[] WIN = new String[SIZE - 1]; // 15 casilleros
+    private JButton[][] board = new JButton[getDim()][getDim()]; //matriz de casillas
     private int segundos = 0;
 
     public Juego() {
@@ -53,8 +53,8 @@ public class Juego {
             }
 
             board[ROW][COL].setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            board[ROW][COL].setBackground(Color.BLACK);
-            board[ROW][COL].setForeground(Color.GREEN);
+            board[ROW][COL].setBackground(Color.RED);
+            board[ROW][COL].setForeground(Color.WHITE);
             
             // Añadir ActionListener a cada botón
             board[ROW][COL].addActionListener(e -> {
@@ -114,50 +114,72 @@ public class Juego {
     }
 
     public boolean makeMove(int row, int col) {
-        final int emptyRow = emptyCell / DIM;
-        final int emptyCol = emptyCell % DIM;
-        int rowDiff = emptyRow - row;
-        int colDiff = emptyCol - col;
-        boolean isInRow = (row == emptyRow);
-        boolean isInCol = (col == emptyCol);
-        boolean isNotDiagonal = (isInRow || isInCol);
+    final int emptyRow = this.getEmptyCellRow();
+    final int emptyCol = this.getEmptyCellColumn();
 
-        if (isNotDiagonal) {
-            int diff = Math.abs(colDiff);
+    // Verifica que los índices estén dentro del rango válido
+    if (row < 0 || row >= getDim() || col < 0 || col >= getDim()) {
+        return false;
+    }
 
-            if (colDiff < 0 && isInRow) {
-                for (int i = 0; i < diff; i++) {
-                    board[emptyRow][emptyCol + i].setText(board[emptyRow][emptyCol + (i + 1)].getText());
+    int rowDiff = emptyRow - row;
+    int colDiff = emptyCol - col;
+    boolean isInRow = (row == emptyRow);
+    boolean isInCol = (col == emptyCol);
+    boolean isNotDiagonal = (isInRow || isInCol);
+
+    if (isNotDiagonal) {
+        int diff = Math.abs(colDiff);
+
+        if (colDiff < 0 && isInRow) {
+            for (int i = 0; i < diff; i++) {
+                // Verifica que los índices estén dentro del rango
+                if (emptyCol + i + 1 >= getDim()) {
+                    return false;
                 }
-            } else if (colDiff > 0 && isInRow) {
-                for (int i = 0; i < diff; i++) {
-                    board[emptyRow][emptyCol - i].setText(board[emptyRow][emptyCol - (i + 1)].getText());
-                }
+                board[emptyRow][emptyCol + i].setText(board[emptyRow][emptyCol + (i + 1)].getText());
             }
-
-            diff = Math.abs(rowDiff);
-
-            if (rowDiff < 0 && isInCol) {
-                for (int i = 0; i < diff; i++) {
-                    board[emptyRow + i][emptyCol].setText(board[emptyRow + (i + 1)][emptyCol].getText());
+        } else if (colDiff > 0 && isInRow) {
+            for (int i = 0; i < diff; i++) {
+                // Verifica que los índices estén dentro del rango
+                if (emptyCol - i - 1 < 0) {
+                    return false;
                 }
-            } else if (rowDiff > 0 && isInCol) {
-                for (int i = 0; i < diff; i++) {
-                    board[emptyRow - i][emptyCol].setText(board[emptyRow - (i + 1)][emptyCol].getText());
-                }
+                board[emptyRow][emptyCol - i].setText(board[emptyRow][emptyCol - (i + 1)].getText());
             }
-
-            board[emptyRow][emptyCol].setVisible(true);
-            board[row][col].setText("0");
-            board[row][col].setVisible(false);
-            emptyCell = getIndex(row, col);
-
-            movimientos++;
-            return true; // Asegúrate de que el movimiento se haya realizado correctamente
         }
 
-        return false; // El movimiento no es válido
+        diff = Math.abs(rowDiff);
+
+        if (rowDiff < 0 && isInCol) {
+            for (int i = 0; i < diff; i++) {
+                // Verifica que los índices estén dentro del rango
+                if (emptyRow + i + 1 >= getDim()) {
+                    return false;
+                }
+                board[emptyRow + i][emptyCol].setText(board[emptyRow + (i + 1)][emptyCol].getText());
+            }
+        } else if (rowDiff > 0 && isInCol) {
+            for (int i = 0; i < diff; i++) {
+                // Verifica que los índices estén dentro del rango
+                if (emptyRow - i - 1 < 0) {
+                    return false;
+                }
+                board[emptyRow - i][emptyCol].setText(board[emptyRow - (i + 1)][emptyCol].getText());
+            }
+        }
+
+        board[emptyRow][emptyCol].setVisible(true);
+        board[row][col].setText("0");
+        board[row][col].setVisible(false);
+        emptyCell = getIndex(row, col);
+
+        movimientos++;
+        return true; // Asegúrate de que el movimiento se haya realizado correctamente
     }
+
+    return false; // El movimiento no es válido
+}
 
     public boolean isFinished() {
         for (int index = WIN.length - 1; index >= 0; index--) {
@@ -217,6 +239,14 @@ public class Juego {
 		return DIM;
 	}
 	
+	public int getEmptyCellRow() {
+	    return emptyCell / DIM;
+	}
+
+	public int getEmptyCellColumn() {
+	    return emptyCell % DIM;
+	}
+
 	public void jugar() {
 		 SwingUtilities.invokeLater(() -> new Interfaz().setVisible(true));
 	}

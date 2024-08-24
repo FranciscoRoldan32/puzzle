@@ -4,8 +4,10 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 
-public class Interfaz extends JFrame implements ActionListener {
+public class Interfaz extends JFrame implements ActionListener, KeyListener {
 
     private Juego juego;
     private JLabel lblMovimientos;
@@ -53,6 +55,11 @@ public class Interfaz extends JFrame implements ActionListener {
 
         juego.inicializar(boardPanel, lblMovimientos, lblTiempo);
         startTimer();
+        
+        //teclas
+        addKeyListener(this);
+        setFocusable(true);
+        setFocusTraversalKeysEnabled(false);
     }
 
     private void startTimer() {
@@ -99,5 +106,47 @@ public class Interfaz extends JFrame implements ActionListener {
             }
         }
     }
+
+    @Override
+    public void keyPressed(KeyEvent e) {
+	    int keyCode = e.getKeyCode();
+	    boolean moveSuccessful = false;
+	
+	    switch (keyCode) {
+		    case KeyEvent.VK_DOWN: // Flecha abajo o 'S'
+	        case KeyEvent.VK_S:
+	            moveSuccessful = juego.makeMove(juego.getEmptyCellRow() - 1, juego.getEmptyCellColumn());
+	            break;
+	        case KeyEvent.VK_UP: // Flecha arriba o 'W'
+	        case KeyEvent.VK_W:	
+	            moveSuccessful = juego.makeMove(juego.getEmptyCellRow() + 1, juego.getEmptyCellColumn());
+	            break;
+	        case KeyEvent.VK_LEFT: // Flecha izquierda o 'A'
+	        case KeyEvent.VK_A:
+	            moveSuccessful = juego.makeMove(juego.getEmptyCellRow(), juego.getEmptyCellColumn() + 1);
+	            break;
+	        case KeyEvent.VK_RIGHT: // Flecha derecha o 'D'
+	        case KeyEvent.VK_D:
+	            moveSuccessful = juego.makeMove(juego.getEmptyCellRow(), juego.getEmptyCellColumn() - 1);
+	            break;
+    }
+
+	    if (moveSuccessful) {
+	        lblMovimientos.setText(String.valueOf(juego.getMovimientos()));
+	        if (juego.isFinished()) {
+	            timer.stop(); // Detiene el temporizador
+	            juego.playWinSound(); // Reproduce el sonido de victoria
+	            JOptionPane.showMessageDialog(this, "¡Has ganado el juego!");
+	        }
+	    }
+    }
+
+    @Override
+    public void keyReleased(KeyEvent e) {}
+
+    @Override
+    public void keyTyped(KeyEvent e) {}
+
+	
 
 }
