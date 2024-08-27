@@ -1,5 +1,4 @@
 package juegoMVP;
-
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -24,8 +23,10 @@ public class Interfaz extends JFrame implements ActionListener, KeyListener {
         setSize(400, 400);
         setLocationRelativeTo(null);
 
+        // Crear el panel principal con BorderLayout
         JPanel mainPanel = new JPanel(new BorderLayout());
 
+        // Panel superior que contiene las etiquetas
         JPanel topPanel = new JPanel();
         topPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
 
@@ -41,24 +42,52 @@ public class Interfaz extends JFrame implements ActionListener, KeyListener {
         lblTiempo = new JLabel("0:00");
         topPanel.add(lblTiempo);
 
-        JButton btnReset = new JButton("Resetear");
+        // Agregar el topPanel al mainPanel
+        mainPanel.add(topPanel, BorderLayout.NORTH);
+
+        // Crear el menú
+        JMenuBar menuBar = new JMenuBar();
+        JMenu mnNewMenu = new JMenu("Menu ⬇️");
+
+        // Crear los botones y agregarlos al menú
+        JMenuItem btnReset = new JMenuItem("Resetear");
+        mnNewMenu.add(btnReset);
         btnReset.setForeground(new Color(255, 255, 0));
         btnReset.setHorizontalAlignment(SwingConstants.RIGHT);
         btnReset.setBackground(new Color(0, 0, 255));
-        topPanel.add(btnReset);
+
+        JMenuItem btnDeshacer = new JMenuItem("Deshacer");
+        mnNewMenu.add(btnDeshacer);
+        btnDeshacer.setHorizontalAlignment(SwingConstants.RIGHT);
+        btnDeshacer.setForeground(new Color(248, 248, 255));
+        btnDeshacer.setBackground(Color.RED);
+        
+        JMenuItem btnVolver = new JMenuItem("Volver");
+        btnVolver.setHorizontalAlignment(SwingConstants.RIGHT);
+        btnVolver.setForeground(new Color(248, 248, 255));
+        btnVolver.setBackground(Color.BLUE);
+        mnNewMenu.add(btnVolver);
+
+        // Agregar el menú al menúBar
+        menuBar.add(mnNewMenu);
+        setJMenuBar(menuBar); // Establecer el JMenuBar en el JFrame
+
+        // Asignar ActionListener a los botones del menú
         btnReset.addActionListener(this);
+        btnDeshacer.addActionListener(this);
+        btnVolver.addActionListener(this);
 
-        mainPanel.add(topPanel, BorderLayout.NORTH);
-
+        // Crear el panel del tablero
         boardPanel = new JPanel(new GridLayout(Juego.getDim(), Juego.getDim()));
         mainPanel.add(boardPanel, BorderLayout.CENTER);
 
+        // Establecer el mainPanel como el contenido de la ventana
         setContentPane(mainPanel);
 
         juego.inicializar(boardPanel, this);
         startTimer();
-        
-        //teclas
+
+        // Configurar las teclas
         addKeyListener(this);
         setFocusable(true);
         setFocusTraversalKeysEnabled(false);
@@ -78,7 +107,6 @@ public class Interfaz extends JFrame implements ActionListener, KeyListener {
         boardPanel.revalidate(); // Asegúrate de que el panel se actualice
         boardPanel.repaint();
     }
-
 
     public void setMovimientosText(String text) {
         lblMovimientos.setText(text);
@@ -105,34 +133,26 @@ public class Interfaz extends JFrame implements ActionListener, KeyListener {
     
     @Override
     public void actionPerformed(ActionEvent event) {
-        JButton buttonPressed = (JButton) event.getSource();
+        JMenuItem item = (JMenuItem) event.getSource();
 
-        if (buttonPressed.getText().equals("Resetear")) {
+        if (item.getText().equals("Resetear")) {
             juego.inicializar(boardPanel, this); // Pasar la instancia actual de Interfaz
             updateBoardPanel();
             resetTimer();
             setMovimientosText("0"); // Reiniciar el conteo de movimientos
+        } else if (item.getText().equals("Deshacer")) {
+            juego.undoMove();
+            updateBoardPanel();
+            setMovimientosText(String.valueOf(juego.getMovimientos()));
+        } else if (item.getText().equals("Volver")) {
+            // Lógica para "Volver"
+            // Puedes cerrar la ventana o realizar cualquier otra acción
+            dispose();
         } else {
-            int index = juego.indexOf(buttonPressed.getText());
-            if (index == -1) {
-                throw new IllegalArgumentException("Index should be between 0-15");
-            }
-            int row = index / Juego.getDim();
-            int column = index % Juego.getDim();
-
-            if (juego.makeMove(row, column)) {
-            	juego.incrementoMovimientos();
-            	setMovimientosText(String.valueOf(juego.getMovimientos())); // Actualizar el conteo de movimientos
-                //updateBoardPanel(); // Actualizar el panel de juego
-            	if (juego.isFinished()) {
-                    timer.stop();
-                    juego.playWinSound();
-                    JOptionPane.showMessageDialog(null, "¡Has ganado el juego!");
-                }
-            }
+            // Lógica adicional si es necesario
         }
     }
-    
+
     @Override
     public void keyPressed(KeyEvent e) {
         int keyCode = e.getKeyCode();
@@ -158,9 +178,7 @@ public class Interfaz extends JFrame implements ActionListener, KeyListener {
         }
 
         if (moveSuccessful) {
-            //lblMovimientos.setText(String.valueOf(juego.getMovimientos()));
-        	//juego.incrementoMovimientos();
-        	setMovimientosText(String.valueOf(juego.getMovimientos()));
+            setMovimientosText(String.valueOf(juego.getMovimientos()));
             if (juego.isFinished()) {
                 timer.stop();
                 juego.playWinSound();
@@ -169,12 +187,9 @@ public class Interfaz extends JFrame implements ActionListener, KeyListener {
         }
     }
 
-    
     @Override
     public void keyReleased(KeyEvent e) {}
 
     @Override
     public void keyTyped(KeyEvent e) {}
-    
-
 }
