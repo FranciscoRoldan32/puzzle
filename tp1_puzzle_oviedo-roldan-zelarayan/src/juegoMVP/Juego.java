@@ -9,25 +9,28 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Stack;
 
 //modelo
 public class Juego {
-
+	private Stack<JButton[][]> previousStates;
     private int movimientos = 0;
     private int emptyCell;
     private static final int DIM = 4;
-    private static final int SIZE = getDim() * getDim(); //4 columnas * 4 filas
-    final String[] WIN = new String[SIZE - 1]; // 15 casilleros
-    private JButton[][] board = new JButton[getDim()][getDim()]; //matriz de casillas
+    private static final int SIZE = getDim() * getDim();
+    final String[] WIN = new String[SIZE - 1];
+    private JButton[][] board = new JButton[getDim()][getDim()];
 
     public Juego() {
+        previousStates = new Stack<>();
         for (int i = 1; i < SIZE; i++) {
             WIN[i - 1] = Integer.toString(i);
         }
     }
 
     public void inicializar(JPanel boardPanel, Interfaz vista) {
-        boardPanel.removeAll(); // Limpiar el tablero.
+        boardPanel.removeAll();
+        previousStates.clear();  // Limpiar el historial de movimientos
 
         ArrayList<Integer> initialList = new ArrayList<>(SIZE);
         for (boolean isSolvable = false; !isSolvable;) {
@@ -52,17 +55,13 @@ public class Juego {
             board[ROW][COL].setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             board[ROW][COL].setBackground(Color.CYAN);
             board[ROW][COL].setForeground(Color.BLACK);
-            
-            // Usar la instancia de vista actual en lugar de crear una nueva
-            board[ROW][COL].addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    if (makeMove(ROW, COL)) {
-                        vista.setMovimientosText(String.valueOf(movimientos)); // Actualizar el conteo de movimientos
-                        if (isFinished()) {
-                            playWinSound();
-                            JOptionPane.showMessageDialog(null, "¡Has ganado el juego!");
-                        }
+
+            board[ROW][COL].addActionListener(e -> {
+                if (makeMove(ROW, COL)) {
+                    vista.setMovimientosText(String.valueOf(movimientos));
+                    if (isFinished()) {
+                        playWinSound();
+                        JOptionPane.showMessageDialog(null, "¡Has ganado el juego!");
                     }
                 }
             });
@@ -74,6 +73,65 @@ public class Juego {
         boardPanel.repaint();
     }
 
+    private void copyBoard() {
+        JButton[][] copiaTablero = new JButton[getDim()][getDim()];
+        for (int i = 0; i < getDim(); i++) {
+            for (int j = 0; j < getDim(); j++) {
+                copiaTablero[i][j] = new JButton(board[i][j].getText());
+                copiaTablero[i][j].setVisible(board[i][j].isVisible());
+                copiaTablero[i][j].setBackground(board[i][j].getBackground());
+            }
+        }
+        previousStates.push(copiaTablero);
+    }
+
+    public void undoMove() {
+        if (!previousStates.isEmpty()) {
+            JButton[][] previousBoard = previousStates.pop();
+            for (int i = 0; i < getDim(); i++) {
+                for (int j = 0; j < getDim(); j++) {
+                    board[i][j].setText(previousBoard[i][j].getText());
+                    board[i][j].setVisible(previousBoard[i][j].isVisible());
+                    board[i][j].setBackground(previousBoard[i][j].getBackground());
+                    if (previousBoard[i][j].getText().equals("0")) {
+                        emptyCell = getIndex(i, j);
+                    }
+                }
+            }
+            movimientos--;
+        }
+    }
+
+    public boolean makeMove(int row, int col) {
+        final int emptyRow = this.getEmptyCellRow();
+        final int emptyCol = this.getEmptyCellColumn();
+
+        if (row < 0 || row >= getDim() || col < 0 || col >= getDim()) {
+            return false;
+        }
+
+        int rowDiff = emptyRow - row;
+        int colDiff = emptyCol - col;
+        boolean isInRow = (row == emptyRow);
+        boolean isInCol = (col == emptyCol);
+        boolean isNotDiagonal = (isInRow || isInCol);
+
+        if (isNotDiagonal) {
+            copyBoard();  // Guardar el estado antes de mover
+
+            if (Math.abs(colDiff) == 1 || Math.abs(rowDiff) == 1) {
+                board[emptyRow][emptyCol].setText(board[row][col].getText());
+                board[emptyRow][emptyCol].setVisible(true);
+                board[row][col].setText("0");
+                board[row][col].setVisible(false);
+                emptyCell = getIndex(row, col);
+                movimientos++;
+                return true;
+            }
+        }
+
+        return false;
+    }
     private boolean isSolvable(ArrayList<Integer> list) {
         int inversionSum = 0;
         for (int i = 0; i < list.size(); i++) {
@@ -97,7 +155,8 @@ public class Juego {
     private int getIndex(int i, int j) {
         return ((i * getDim()) + j);
     }
-
+    
+    
     public int indexOf(String cellNum) {
         for (int ROW = 0; ROW < board.length; ROW++) {
             for (int COL = 0; COL < board[ROW].length; COL++) {
@@ -109,68 +168,6 @@ public class Juego {
         return -1;
     }
 
-    public boolean makeMove(int row, int col) {
-        final int emptyRow = this.getEmptyCellRow();
-        final int emptyCol = this.getEmptyCellColumn();
-
-        if (row < 0 || row >= getDim() || col < 0 || col >= getDim()) {
-            return false;
-        }
-
-        int rowDiff = emptyRow - row;
-        int colDiff = emptyCol - col;
-        boolean isInRow = (row == emptyRow);
-        boolean isInCol = (col == emptyCol);
-        boolean isNotDiagonal = (isInRow || isInCol);
-
-        if (isNotDiagonal) {
-            int diff = Math.abs(colDiff);
-
-            if (colDiff < 0 && isInRow) {
-                for (int i = 0; i < diff; i++) {
-                    if (emptyCol + i + 1 >= getDim()) {
-                        return false;
-                    }
-                    board[emptyRow][emptyCol + i].setText(board[emptyRow][emptyCol + (i + 1)].getText());
-                }
-            } else if (colDiff > 0 && isInRow) {
-                for (int i = 0; i < diff; i++) {
-                    if (emptyCol - i - 1 < 0) {
-                        return false;
-                    }
-                    board[emptyRow][emptyCol - i].setText(board[emptyRow][emptyCol - (i + 1)].getText());
-                }
-            }
-
-            diff = Math.abs(rowDiff);
-
-            if (rowDiff < 0 && isInCol) {
-                for (int i = 0; i < diff; i++) {
-                    if (emptyRow + i + 1 >= getDim()) {
-                        return false;
-                    }
-                    board[emptyRow + i][emptyCol].setText(board[emptyRow + (i + 1)][emptyCol].getText());
-                }
-            } else if (rowDiff > 0 && isInCol) {
-                for (int i = 0; i < diff; i++) {
-                    if (emptyRow - i - 1 < 0) {
-                        return false;
-                    }
-                    board[emptyRow - i][emptyCol].setText(board[emptyRow - (i + 1)][emptyCol].getText());
-                }
-            }
-
-            board[emptyRow][emptyCol].setVisible(true);
-            board[row][col].setText("0");
-            board[row][col].setVisible(false);
-            emptyCell = getIndex(row, col);
-
-            incrementoMovimientos(); 
-            return true;
-        }
-
-        return false;
-    }
 
 
     public boolean isFinished() {
@@ -228,5 +225,5 @@ public class Juego {
     }
 
 	public void incrementoMovimientos() {movimientos++;}
-
+	
 }
